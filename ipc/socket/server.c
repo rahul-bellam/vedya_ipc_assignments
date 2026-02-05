@@ -34,17 +34,17 @@ int main() {
     printf("Server listening on port %d\n", PORT);
  
     while (1) {
-        FD_ZERO(&readfds);
-        FD_SET(server_fd, &readfds);
-        int max_sd = server_fd;
+       FD_ZERO(&readfds);
+       FD_SET(server_fd, &readfds);
+       int max_sd = server_fd;
  
         // add client sockets to set
-        for (int i = 0; i < MAX_CLIENTS; i++) {
-            int sd = client_socket[i];
-            if (sd > 0)
-                FD_SET(sd, &readfds);
-            if (sd > max_sd)
-                max_sd = sd;
+     for (int i = 0; i < MAX_CLIENTS; i++) {
+       int sd = client_socket[i];
+        if (sd > 0)
+         FD_SET(sd, &readfds);
+        if (sd > max_sd)
+          max_sd = sd;
         }
  
         // wait for activity
@@ -89,4 +89,5 @@ int main() {
             }
         }
     }
+
 }
