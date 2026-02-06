@@ -1,36 +1,73 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <string.h>
- 
-int main() {
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main(int argc, char *argv[]) {
     int sock;
-    struct sockaddr_in server;
-    char msg[] = "Hello Server";
-    char buffer[1024];
-    int valread;
-
+    struct sockaddr_in serv_addr;
+    char sendbuf[BUFFER_SIZE];
+    char recvbuf[BUFFER_SIZE + 1];
+    const char *server_ip = "127.0.0.1";   // default
+    if (argc >= 2) server_ip = argv[1];    // allow override: ./client <ip>
+    // Create socket
     sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror("socket");
+        return 1;
+    }
+    // Setup server address
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
 
-    server.sin_family = AF_INET;
-    server.sin_port = htons(8080);
-    inet_pton(AF_INET, "127.0.0.1", &server.sin_addr);
-
-    connect(sock, (struct sockaddr *)&server, sizeof(server));
-
-    send(sock, msg, strlen(msg), 0);
-// Wait for messages from server until connection is closed
-    while ((valread = recv(sock, buffer, sizeof(buffer) - 1, 0)) > 0) {
-         buffer[valread] = '\0';
-         printf("Server: %s\n", buffer);
-        // Optionally, break if a specific close message is received
-        if (strstr(buffer, "Connection terminated by server") != NULL) {
+    if (inet_pton(AF_INET, server_ip, &serv_addr.sin_addr) <= 0) {
+        perror("inet_pton");
+        close(sock);
+        return 1;
+    }
+    // Connect
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("connect");
+        close(sock);
+        return 1;
+    }
+    printf("Connected to server %s:%d\n", server_ip, PORT);
+    printf("Type a message and press Enter (type 'exit' to quit)\n");
+    while (1) {
+        printf("> ");
+        fflush(stdout);
+        if (!fgets(sendbuf, sizeof(sendbuf), stdin)) {
+            printf("\nEOF detected. Exiting...\n");
             break;
         }
-     }
- 
-    // Wait for user input before exiting to keep connection open
-    printf("Press Enter to exit...\n");
-    getchar();
-     return 0;
- }
+        // Remove trailing newline
+        sendbuf[strcspn(sendbuf, "\n")] = '\0';
+        if (strcmp(sendbuf, "exit") == 0) {
+            printf("Closing connection...\n");
+            break;
+        }
+        // Send message
+        if (send(sock, sendbuf, strlen(sendbuf), 0) < 0) {
+            perror("send");
+            break;
+        }
+        // Receive server response
+        int n = recv(sock, recvbuf, BUFFER_SIZE, 0);
+        if (n == 0) {
+            printf("Server closed the connection.\n");
+            break;
+        } else if (n < 0) {
+            perror("recv");
+            break;
+        }
+        recvbuf[n] = '\0';
+        printf("Server: %s\n", recvbuf);
+    }
+    close(sock);
+    return 0;
+}
