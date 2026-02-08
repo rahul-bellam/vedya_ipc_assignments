@@ -8,3 +8,12 @@ int main() {
     }
     return 0;
 }
+
+
+// gdb commands used :
+//    break - to create a breakpoint to check
+//    run : to run the debugging
+//    step : to step into the function
+//    print $rax : to check the return address of malloc
+//    continue : to continue running in the breakpoint
+//    finish : to complete one execution of the function
