@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main()
+{
+    int sock;
+    struct sockaddr_in server;
+    char buffer[1024];
+    socklen_t len = sizeof(server);
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    server.sin_family = AF_INET;
+    server.sin_port = htons(9001);
+    inet_pton(AF_INET, "127.0.0.1", &server.sin_addr);
+
+    sendto(sock, "Hello UDP Server", 16, 0,
+           (struct sockaddr*)&server, len);
+
+    recvfrom(sock, buffer, sizeof(buffer), 0,
+             (struct sockaddr*)&server, &len);
+
+    printf("Server: %s\n", buffer);
+    close(sock);
+}
